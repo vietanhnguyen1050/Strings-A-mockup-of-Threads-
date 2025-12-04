@@ -1,103 +1,53 @@
-import { useState } from 'react';
-import { DownCircleOutlined, HomeFilled, SearchOutlined, HeartOutlined, UserOutlined } from '@ant-design/icons';
-import { Layout, Dropdown, Space, Flex, Button, Divider } from 'antd';
-import './App.css';
-import PostCard from './components/postCard';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/context/AuthContext";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { PostProvider } from "@/context/PostContext";
+import MainLayout from "@/components/layout/MainLayout";
+import Home from "@/pages/Home";
+import Search from "@/pages/Search";
+import Notifications from "@/pages/Notifications";
+import Profile from "@/pages/Profile";
+import Settings from "@/pages/Settings";
+import Liked from "@/pages/Liked";
+import Login from "@/pages/Login";
+import Signup from "@/pages/Signup";
+import NotFound from "./pages/NotFound";
 
-function App() {
-  const { Sider, Content } = Layout;
+const queryClient = new QueryClient();
 
-  const contentStyle = {
-    lineHeight: '120px',
-    color: '#fff',
-    backgroundColor: '#000000ff',
-    minHeight: '500px',
-    marginLeft: '10vh',
-    justifyItems: 'center',
-  };
-  const siderStyle = {
-    textAlign: 'center',
-    lineHeight: '120px',
-    color: '#fff',
-    backgroundColor: '#000000ff',
-    maxWidth: '10vh',
-    width: '10vh',
-    position: 'fixed',
-    height: '100vh',
-    left: 0,
-    top: 0,
-    bottom: 0,
-  };
-  const textStyle = {
-    color: '#ffff',
-    fontSize: '22px',
-  };
-  const dropdownStyle = {
-    backgroundColor: '#000000ff',
-  };
-  const items = [
-    {
-      label: (
-        <a href="#" target="_blank" rel="noopener noreferrer">
-          Create Post
-        </a>
-      ),
-      key: '0',
-    },
-    {
-      type: 'divider',
-    },
-    {
-      label: (
-        <a href="#" target="_blank" rel="noopener noreferrer">
-          For You
-        </a>
-      ),
-      key: '1',
-    },
-    {
-      label: (
-        <a href="#" target="_blank" rel="noopener noreferrer">
-          Following
-        </a>
-      ),
-      key: '2',
-    },
-  ];
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider>
+      <AuthProvider>
+        <PostProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/search/:searchParams" element={<Search />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/liked" element={<Liked />} />
+                  <Route path="/:username" element={<Profile />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </PostProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
+);
 
-  return (
-    <Layout>
-      <Sider width={'10vh'} style={siderStyle}>
-        <Button className='siderButton'>
-          <img src="./src/assets/strings.jpg" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-        </Button>
-        <Flex justify="center" align="center" style={{ height: '80vh' }} width={'100%'} gap={'large'} vertical>
-          <Button className='siderButton' icon={<HomeFilled />}></Button>
-          <Button className='siderButton' icon={<SearchOutlined />}></Button>
-          <Button className='siderButton'>+</Button>
-          <Button className='siderButton' icon={<HeartOutlined />}></Button>
-          <Button className='siderButton' icon={<UserOutlined />}></Button>
-        </Flex>
-      </Sider>
-      <Content style={contentStyle}>
-        <div style={{ display: 'flex', alignItems: 'center'}}>
-          <a href="#" style={textStyle}>For you </a>
-          <Space separator={<Divider vertical />} style={{width: "10px"}}> </Space>
-          <Dropdown menu={{ items }} trigger={['click']} popupClassName="dropdownStyle">
-            <a onClick={e => e.preventDefault()}>
-              <Space style={{fontSize: '18px', color: '#ffffff'}}>
-                <DownCircleOutlined />
-              </Space>
-            </a>
-          </Dropdown>
-        </div>
-        <Flex vertical align='center' style={{width: '100%'}}>
-          <PostCard />
-          <PostCard />
-        </Flex>
-      </Content>
-    </Layout>
-  );
-}
-
-export default App
+export default App;
