@@ -1,8 +1,23 @@
+/**
+ * Notifications Page
+ * 
+ * Shows user activity notifications.
+ */
+
 import { useState } from 'react';
-import { Heart, MessageCircle, Repeat2, UserPlus } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
+import { Avatar, Typography, Button, Tabs, Empty } from 'antd';
+import { 
+  HeartFilled, 
+  MessageFilled, 
+  RetweetOutlined, 
+  UserAddOutlined,
+  BellFilled,
+} from '@ant-design/icons';
+import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
+
+const { Title, Text } = Typography;
 
 const mockNotifications = [
   {
@@ -40,21 +55,38 @@ const mockNotifications = [
 
 const Notifications = () => {
   const { isAuthenticated } = useAuth();
-  const [filter, setFilter] = useState('all');
+  const { isDark } = useTheme();
+  const [activeTab, setActiveTab] = useState('all');
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
-          <h2 className="text-xl font-semibold mb-2">Login to see notifications</h2>
-          <p className="text-muted-foreground mb-4">
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <BellFilled style={{ 
+            fontSize: 48, 
+            color: '#1890ff',
+            marginBottom: 16,
+          }} />
+          <Title level={4} style={{ color: isDark ? '#fff' : '#000' }}>
+            Login to see notifications
+          </Title>
+          <Text style={{ 
+            color: isDark ? '#737373' : '#8c8c8c',
+            display: 'block',
+            marginBottom: 24,
+          }}>
             You need to be logged in to view your notifications.
-          </p>
-          <Link 
-            to="/login"
-            className="inline-block px-6 py-2 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
-          >
-            Log in
+          </Text>
+          <Link to="/login">
+            <Button type="primary" size="large" style={{ borderRadius: 8 }}>
+              Log in
+            </Button>
           </Link>
         </div>
       </div>
@@ -62,15 +94,16 @@ const Notifications = () => {
   }
 
   const getIcon = (type) => {
+    const iconStyle = { fontSize: 14 };
     switch (type) {
       case 'like':
-        return <Heart size={16} className="text-red-500 fill-red-500" />;
+        return <HeartFilled style={{ ...iconStyle, color: '#ff4d4f' }} />;
       case 'comment':
-        return <MessageCircle size={16} className="text-blue-500" />;
+        return <MessageFilled style={{ ...iconStyle, color: '#1890ff' }} />;
       case 'repost':
-        return <Repeat2 size={16} className="text-green-500" />;
+        return <RetweetOutlined style={{ ...iconStyle, color: '#52c41a' }} />;
       case 'follow':
-        return <UserPlus size={16} className="text-purple-500" />;
+        return <UserAddOutlined style={{ ...iconStyle, color: '#722ed1' }} />;
       default:
         return null;
     }
@@ -91,72 +124,121 @@ const Notifications = () => {
     }
   };
 
+  const tabItems = [
+    { key: 'all', label: 'All' },
+    { key: 'verified', label: 'Verified' },
+  ];
+
   return (
-    <div className="min-h-screen">
+    <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="py-4 px-4">
-          <h1 className="text-xl font-bold text-center">Activity</h1>
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+      }}>
+        <div style={{ padding: '16px' }}>
+          <Title level={5} style={{ 
+            margin: 0, 
+            textAlign: 'center',
+            color: isDark ? '#fff' : '#000',
+          }}>
+            Activity
+          </Title>
         </div>
-        <div className="flex border-b border-border">
-          <button
-            onClick={() => setFilter('all')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${
-              filter === 'all' 
-                ? 'border-b-2 border-foreground text-foreground' 
-                : 'text-muted-foreground'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('verified')}
-            className={`flex-1 py-3 text-sm font-medium transition-colors ${
-              filter === 'verified' 
-                ? 'border-b-2 border-foreground text-foreground' 
-                : 'text-muted-foreground'
-            }`}
-          >
-            Verified
-          </button>
-        </div>
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabItems}
+          centered
+          style={{ marginBottom: 0 }}
+        />
       </header>
 
       {/* Notifications List */}
-      <div className="pb-20">
-        {mockNotifications.map((notification) => (
-          <div 
-            key={notification.id}
-            className={`flex items-start gap-3 p-4 border-b border-border hover:bg-threads-hover transition-colors cursor-pointer ${
-              !notification.read ? 'bg-muted/30' : ''
-            }`}
-          >
-            <div className="relative">
-              <Avatar className="w-10 h-10">
-                <AvatarFallback className="bg-muted text-muted-foreground">
+      <div style={{ paddingBottom: 80 }}>
+        {mockNotifications.length > 0 ? (
+          mockNotifications.map((notification) => (
+            <div 
+              key={notification.id}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 12,
+                padding: 16,
+                borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+                backgroundColor: !notification.read 
+                  ? (isDark ? 'rgba(24, 144, 255, 0.05)' : 'rgba(24, 144, 255, 0.02)') 
+                  : 'transparent',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+              }}
+              className="hover-bg"
+            >
+              <div style={{ position: 'relative' }}>
+                <Avatar 
+                  size={40}
+                  style={{ backgroundColor: isDark ? '#333' : '#f0f0f0' }}
+                >
                   {notification.user.displayName.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute -bottom-1 -right-1 p-1 bg-background rounded-full">
-                {getIcon(notification.type)}
+                </Avatar>
+                <div style={{
+                  position: 'absolute',
+                  bottom: -2,
+                  right: -2,
+                  backgroundColor: isDark ? '#181818' : '#fff',
+                  borderRadius: '50%',
+                  padding: 2,
+                }}>
+                  {getIcon(notification.type)}
+                </div>
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ color: isDark ? '#fff' : '#000' }}>
+                  <Text strong>{notification.user.username}</Text>
+                  {' '}
+                  <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+                    {getMessage(notification)}
+                  </Text>
+                </Text>
+                {notification.content && notification.type === 'comment' && (
+                  <Text 
+                    style={{ 
+                      display: 'block',
+                      color: isDark ? '#737373' : '#8c8c8c',
+                      fontSize: 14,
+                      marginTop: 4,
+                    }}
+                    ellipsis
+                  >
+                    {notification.content}
+                  </Text>
+                )}
+                <Text style={{ 
+                  fontSize: 12, 
+                  color: isDark ? '#737373' : '#8c8c8c',
+                  display: 'block',
+                  marginTop: 4,
+                }}>
+                  {notification.timestamp}
+                </Text>
               </div>
             </div>
-
-            <div className="flex-1 min-w-0">
-              <p className="text-foreground">
-                <span className="font-semibold">{notification.user.username}</span>
-                {' '}
-                <span className="text-muted-foreground">{getMessage(notification)}</span>
-              </p>
-              {notification.content && notification.type === 'comment' && (
-                <p className="text-muted-foreground text-sm mt-1 line-clamp-2">
-                  {notification.content}
-                </p>
-              )}
-              <span className="text-xs text-muted-foreground">{notification.timestamp}</span>
-            </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <Empty
+            description={
+              <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+                No notifications yet
+              </Text>
+            }
+            style={{ padding: 40 }}
+          />
+        )}
       </div>
     </div>
   );

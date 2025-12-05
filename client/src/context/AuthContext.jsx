@@ -1,57 +1,79 @@
+/**
+ * Auth Context
+ * 
+ * Manages authentication state throughout the application.
+ * Connects to authService for API calls.
+ */
+
 import { createContext, useContext, useState, useEffect } from 'react';
+import authService from '@/services/authService';
 
 const AuthContext = createContext(undefined);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
+  // Check for existing session on mount
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('threads_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const checkAuth = async () => {
+      try {
+        const result = await authService.getCurrentUser();
+        if (result.success) {
+          setUser(result.data);
+          setIsAuthenticated(true);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAuth();
   }, []);
 
-  const login = async (email, password) => {
-    // Simulated login - replace with actual API call
-    const mockUser = {
-      id: '1',
-      username: 'demo_user',
-      displayName: 'Demo User',
-      avatar: '',
-      bio: 'Welcome to Threads clone!',
-      followers: 42,
-      following: 128,
-    };
-    setUser(mockUser);
-    localStorage.setItem('threads_user', JSON.stringify(mockUser));
-    return true;
+  const login = async (credential, password) => {
+    const result = await authService.login(credential, password);
+    if (result.success) {
+      setUser(result.data.user);
+      setIsAuthenticated(true);
+      return { success: true };
+    }
+    return { success: false, error: result.error };
   };
 
-  const signup = async (email, password, username, displayName) => {
-    // Simulated signup - replace with actual API call
-    const newUser = {
-      id: Date.now().toString(),
-      username,
-      displayName,
-      avatar: '',
-      bio: '',
-      followers: 0,
-      following: 0,
-    };
-    setUser(newUser);
-    localStorage.setItem('threads_user', JSON.stringify(newUser));
-    return true;
+  const signup = async (userData) => {
+    const result = await authService.signup(userData);
+    if (result.success) {
+      setUser(result.data.user);
+      setIsAuthenticated(true);
+      return { success: true };
+    }
+    return { success: false, error: result.error };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await authService.logout();
     setUser(null);
-    localStorage.removeItem('threads_user');
+    setIsAuthenticated(false);
+  };
+
+  const updateProfile = (updates) => {
+    setUser(prev => ({ ...prev, ...updates }));
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      isLoading, 
+      login, 
+      signup, 
+      logout,
+      updateProfile,
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,25 +1,53 @@
+/**
+ * Liked Page
+ * 
+ * Shows all posts liked by the current user.
+ */
+
 import { Link } from 'react-router-dom';
+import { Typography, Button, Empty } from 'antd';
+import { HeartFilled } from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
 import { usePosts } from '@/context/PostContext';
+import { useTheme } from '@/context/ThemeContext';
 import PostCard from '@/components/post/PostCard';
+
+const { Title, Text } = Typography;
 
 const Liked = () => {
   const { isAuthenticated } = useAuth();
   const { likedPosts } = usePosts();
+  const { isDark } = useTheme();
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
-          <h2 className="text-xl font-semibold mb-2">Login to see liked posts</h2>
-          <p className="text-muted-foreground mb-4">
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 24,
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <HeartFilled style={{ 
+            fontSize: 48, 
+            color: '#ff4d4f',
+            marginBottom: 16,
+          }} />
+          <Title level={4} style={{ color: isDark ? '#fff' : '#000' }}>
+            Login to see liked posts
+          </Title>
+          <Text style={{ 
+            color: isDark ? '#737373' : '#8c8c8c',
+            display: 'block',
+            marginBottom: 24,
+          }}>
             You need to be logged in to view your liked posts.
-          </p>
-          <Link 
-            to="/login"
-            className="inline-block px-6 py-2 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
-          >
-            Log in
+          </Text>
+          <Link to="/login">
+            <Button type="primary" size="large" style={{ borderRadius: 8 }}>
+              Log in
+            </Button>
           </Link>
         </div>
       </div>
@@ -27,26 +55,42 @@ const Liked = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="py-4 px-4">
-          <h1 className="text-xl font-bold text-center">Liked Posts</h1>
-        </div>
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+        padding: '16px',
+      }}>
+        <Title level={5} style={{ 
+          margin: 0, 
+          textAlign: 'center',
+          color: isDark ? '#fff' : '#000',
+        }}>
+          Liked Posts
+        </Title>
       </header>
 
       {/* Liked Posts */}
-      <div className="pb-20">
+      <div style={{ paddingBottom: 80 }}>
         {likedPosts.length > 0 ? (
           likedPosts.map((post) => (
-            <PostCard key={post.id} post={post} />
+            <PostCard key={post.postId} post={post} />
           ))
         ) : (
-          <div className="py-12 text-center">
-            <p className="text-muted-foreground">
-              You haven't liked any posts yet.
-            </p>
-          </div>
+          <Empty
+            image={<HeartFilled style={{ fontSize: 64, color: isDark ? '#404040' : '#d9d9d9' }} />}
+            description={
+              <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+                You haven't liked any posts yet.
+              </Text>
+            }
+            style={{ padding: 40 }}
+          />
         )}
       </div>
     </div>

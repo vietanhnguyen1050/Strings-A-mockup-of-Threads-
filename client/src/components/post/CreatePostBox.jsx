@@ -1,30 +1,75 @@
+/**
+ * CreatePostBox Component
+ * 
+ * Inline post creation box that appears on the feed.
+ * Clicking opens the full CreatePostModal.
+ */
+
+import { useState } from 'react';
+import { Avatar, Button } from 'antd';
 import { useAuth } from '@/context/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { useTheme } from '@/context/ThemeContext';
+import CreatePostModal from './CreatePostModal';
 
-const CreatePostBox = ({ onClick }) => {
-  const { user, isAuthenticated } = useAuth();
+const CreatePostBox = () => {
+  const { isAuthenticated, user } = useAuth();
+  const { isDark } = useTheme();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
-    <div 
-      onClick={onClick}
-      className="px-4 py-3 border-b border-border cursor-pointer hover:bg-threads-hover/30 transition-colors"
-    >
-      <div className="flex items-center gap-3">
-        <Avatar className="w-10 h-10">
-          <AvatarImage src={user?.avatar} />
-          <AvatarFallback className="bg-muted text-muted-foreground">
-            {user?.displayName?.charAt(0).toUpperCase()}
-          </AvatarFallback>
+    <>
+      <div 
+        onClick={() => setIsModalOpen(true)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 16px',
+          borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+          cursor: 'pointer',
+          transition: 'background-color 0.2s',
+        }}
+        className="hover-bg"
+      >
+        <Avatar 
+          size={40} 
+          src={user?.avatarUrl}
+          style={{ backgroundColor: isDark ? '#333' : '#f0f0f0' }}
+        >
+          {user?.displayName?.charAt(0).toUpperCase()}
         </Avatar>
-        <span className="text-muted-foreground flex-1">What's new?</span>
-        <Button variant="outline" size="sm" className="rounded-full">
+        
+        <div style={{ 
+          flex: 1, 
+          color: isDark ? '#737373' : '#8c8c8c',
+          fontSize: 15,
+        }}>
+          Start a thread...
+        </div>
+
+        <Button
+          type="primary"
+          size="small"
+          style={{
+            borderRadius: 20,
+            fontWeight: 600,
+            opacity: 0.5,
+          }}
+          disabled
+        >
           Post
         </Button>
       </div>
-    </div>
+
+      <CreatePostModal 
+        open={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+      />
+    </>
   );
 };
 

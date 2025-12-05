@@ -1,121 +1,202 @@
-import { Link } from 'react-router-dom';
-import { 
-  ChevronRight, 
-  Bell, 
-  Lock, 
-  Eye, 
-  UserX, 
-  MessageSquare, 
-  Globe, 
-  HelpCircle,
-  Info,
-  Moon,
-  Sun
-} from 'lucide-react';
+/**
+ * Settings Page
+ * 
+ * App settings and account management.
+ */
+
+import { Typography, Switch, Button } from 'antd';
+import {
+  BellOutlined,
+  LockOutlined,
+  UserOutlined,
+  QuestionCircleOutlined,
+  InfoCircleOutlined,
+  LogoutOutlined,
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
-import { Switch } from '@/components/ui/switch';
+import { message } from 'antd';
+
+const { Title, Text } = Typography;
 
 const Settings = () => {
-  const { isAuthenticated } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const { isAuthenticated, logout } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center p-8">
-          <h2 className="text-xl font-semibold mb-2">Login to access settings</h2>
-          <p className="text-muted-foreground mb-4">
-            You need to be logged in to view settings.
-          </p>
-          <Link 
-            to="/login"
-            className="inline-block px-6 py-2 bg-foreground text-background rounded-full font-medium hover:opacity-90 transition-opacity"
-          >
-            Log in
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const handleLogout = () => {
+    logout();
+    message.success('Logged out successfully');
+    navigate('/');
+  };
 
-  const settingsGroups = [
+  const settingSections = [
     {
       title: 'Preferences',
       items: [
-        { 
-          icon: theme === 'dark' ? Moon : Sun, 
-          label: 'Dark mode', 
-          action: 'toggle',
-          value: theme === 'dark',
-          onToggle: toggleTheme
+        {
+          icon: <BellOutlined />,
+          label: 'Notifications',
+          action: 'arrow',
         },
-        { icon: Bell, label: 'Notifications', action: 'link' },
-        { icon: Lock, label: 'Privacy', action: 'link' },
+        {
+          icon: <LockOutlined />,
+          label: 'Privacy',
+          action: 'arrow',
+        },
+        {
+          label: 'Dark mode',
+          action: 'switch',
+          value: isDark,
+          onChange: toggleTheme,
+        },
       ],
     },
     {
       title: 'Account',
       items: [
-        { icon: Eye, label: 'Hidden Words', action: 'link' },
-        { icon: UserX, label: 'Blocked accounts', action: 'link' },
-        { icon: MessageSquare, label: 'Mentions', action: 'link' },
+        {
+          icon: <UserOutlined />,
+          label: 'Account settings',
+          action: 'arrow',
+        },
       ],
     },
     {
-      title: 'More info and support',
+      title: 'Support',
       items: [
-        { icon: Globe, label: 'Language', action: 'link' },
-        { icon: HelpCircle, label: 'Help', action: 'link' },
-        { icon: Info, label: 'About', action: 'link' },
+        {
+          icon: <QuestionCircleOutlined />,
+          label: 'Help',
+          action: 'arrow',
+        },
+        {
+          icon: <InfoCircleOutlined />,
+          label: 'About',
+          action: 'arrow',
+        },
       ],
     },
   ];
 
   return (
-    <div className="min-h-screen">
+    <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="py-4 px-4">
-          <h1 className="text-xl font-bold text-center">Settings</h1>
-        </div>
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+        padding: '16px',
+      }}>
+        <Title level={5} style={{ 
+          margin: 0, 
+          textAlign: 'center',
+          color: isDark ? '#fff' : '#000',
+        }}>
+          Settings
+        </Title>
       </header>
 
-      {/* Settings */}
-      <div className="p-4 space-y-6">
-        {settingsGroups.map((group) => (
-          <div key={group.title}>
-            <h2 className="text-sm font-medium text-muted-foreground mb-2 px-2">
-              {group.title}
-            </h2>
-            <div className="bg-card rounded-xl overflow-hidden">
-              {group.items.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    key={item.label}
-                    className={`flex items-center justify-between p-4 hover:bg-threads-hover transition-colors cursor-pointer ${
-                      index !== group.items.length - 1 ? 'border-b border-border' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <Icon size={20} className="text-muted-foreground" />
-                      <span className="text-foreground">{item.label}</span>
-                    </div>
-                    {item.action === 'toggle' ? (
-                      <Switch 
-                        checked={item.value} 
-                        onCheckedChange={item.onToggle}
-                      />
-                    ) : (
-                      <ChevronRight size={20} className="text-muted-foreground" />
+      {/* Settings Content */}
+      <div style={{ padding: '8px 0', paddingBottom: 100 }}>
+        {settingSections.map((section) => (
+          <div key={section.title}>
+            <Text style={{ 
+              display: 'block',
+              padding: '16px 16px 8px',
+              fontSize: 13,
+              color: isDark ? '#737373' : '#8c8c8c',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>
+              {section.title}
+            </Text>
+            
+            <div style={{
+              backgroundColor: isDark ? '#181818' : '#fff',
+              margin: '0 16px',
+              borderRadius: 12,
+              border: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+              overflow: 'hidden',
+            }}>
+              {section.items.map((item, itemIndex) => (
+                <div 
+                  key={item.label}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    borderBottom: itemIndex < section.items.length - 1 
+                      ? `1px solid ${isDark ? '#262626' : '#e5e5e5'}`
+                      : 'none',
+                    cursor: item.action === 'arrow' ? 'pointer' : 'default',
+                  }}
+                  className={item.action === 'arrow' ? 'hover-bg' : ''}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {item.icon && (
+                      <span style={{ 
+                        color: isDark ? '#737373' : '#8c8c8c',
+                        fontSize: 18,
+                      }}>
+                        {item.icon}
+                      </span>
                     )}
+                    <Text style={{ color: isDark ? '#fff' : '#000' }}>
+                      {item.label}
+                    </Text>
                   </div>
-                );
-              })}
+                  
+                  {item.action === 'switch' && (
+                    <Switch 
+                      checked={item.value} 
+                      onChange={item.onChange}
+                      size="small"
+                    />
+                  )}
+                  {item.action === 'arrow' && (
+                    <Text style={{ color: isDark ? '#404040' : '#d9d9d9' }}>›</Text>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         ))}
+
+        {/* Logout Button */}
+        {isAuthenticated && (
+          <div style={{ padding: '24px 16px' }}>
+            <Button
+              danger
+              block
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              style={{
+                height: 48,
+                borderRadius: 12,
+                fontWeight: 600,
+              }}
+            >
+              Log out
+            </Button>
+          </div>
+        )}
+
+        {/* App Info */}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '24px 16px',
+          color: isDark ? '#404040' : '#bfbfbf',
+          fontSize: 12,
+        }}>
+          <p>Strings v1.0.0</p>
+          <p>© 2024 Strings. All rights reserved.</p>
+        </div>
       </div>
     </div>
   );

@@ -1,165 +1,330 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { MoreHorizontal, Instagram, BarChart3 } from 'lucide-react';
+/**
+ * Profile Page
+ * 
+ * Displays user profile with posts, comments, likes, and reposts tabs.
+ * Compatible with backend field names.
+ */
+
+import { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { Avatar, Button, Tabs, Typography, Spin, message } from 'antd';
+import { 
+  SettingOutlined, 
+  CheckCircleFilled,
+  EditOutlined,
+} from '@ant-design/icons';
 import { useAuth } from '@/context/AuthContext';
 import { usePosts } from '@/context/PostContext';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+import { useTheme } from '@/context/ThemeContext';
+import { getFullUserProfile, toggleFollow } from '@/services/userService';
 import PostCard from '@/components/post/PostCard';
 import CreatePostBox from '@/components/post/CreatePostBox';
-import CreatePostModal from '@/components/post/CreatePostModal';
+import EditProfileModal from '@/components/profile/EditProfileModal';
+
+const { Title, Text, Paragraph } = Typography;
 
 const Profile = () => {
   const { username } = useParams();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated, user: currentUser } = useAuth();
   const { posts } = usePosts();
+  const { isDark } = useTheme();
+  
+  const [profileUser, setProfileUser] = useState(null);
+  const [userPosts, setUserPosts] = useState([]);
+  const [userComments, setUserComments] = useState([]);
+  const [likedPosts, setLikedPosts] = useState([]);
+  const [repostedPosts, setRepostedPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('threads');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
-  const isOwnProfile = isAuthenticated && user?.username === username;
+  const currentUserId = currentUser?._id || currentUser?.userId;
+  const isOwnProfile = currentUser?.username === username;
 
-  // Mock profile data (in real app, fetch from API)
-  const profileData = isOwnProfile ? user : {
-    id: 'mock',
-    username: username || 'user',
-    displayName: username || 'User',
-    avatar: '',
-    bio: 'Welcome to my Threads profile!',
-    followers: Math.floor(Math.random() * 1000),
-    following: Math.floor(Math.random() * 500),
+  useEffect(() => {
+    loadProfile();
+  }, [username]);
+
+  const loadProfile = async () => {
+    setIsLoading(true);
+    try {
+      const result = await getFullUserProfile(username);
+      if (result.success) {
+        const data = result.data;
+        setProfileUser(data);
+        setUserPosts(data.posts || []);
+        setUserComments(data.comments || []);
+        setLikedPosts(data.likedPosts || []);
+        setRepostedPosts(data.repostedPosts || []);
+        
+        // Check if current user follows this profile
+        const followers = data.followers || [];
+        setIsFollowing(followers.some(f => 
+          f === currentUserId || f?._id === currentUserId
+        ));
+      } else {
+        message.error('User not found');
+      }
+    } catch (error) {
+      message.error('Failed to load profile');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const userPosts = posts.filter(post => 
-    isOwnProfile ? post.author.id === user?.id : post.author.username === username
-  );
+  const handleFollow = async () => {
+    if (!isAuthenticated) {
+      message.warning('Please log in to follow users');
+      return;
+    }
 
-  const tabs = [
-    { id: 'threads', label: 'Threads' },
-    { id: 'replies', label: 'Replies' },
-    { id: 'reposts', label: 'Reposts' },
+    try {
+      const targetUserId = profileUser._id || profileUser.userId;
+      const result = await toggleFollow(targetUserId);
+      if (result.success) {
+        setIsFollowing(result.data.isFollowing);
+        setProfileUser(prev => ({
+          ...prev,
+          followersCount: result.data.followersCount,
+        }));
+      }
+    } catch (error) {
+      message.error('Failed to follow user');
+    }
+  };
+
+  const tabItems = [
+    { key: 'threads', label: 'Threads' },
+    { key: 'replies', label: 'Replies' },
+    { key: 'reposts', label: 'Reposts' },
+    { key: 'liked', label: 'Liked' },
   ];
 
+  const getTabContent = () => {
+    switch (activeTab) {
+      case 'threads':
+        return userPosts.filter(p => !p.replyingTo);
+      case 'replies':
+        return userComments;
+      case 'reposts':
+        return repostedPosts;
+      case 'liked':
+        return likedPosts;
+      default:
+        return [];
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        minHeight: '50vh',
+      }}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  if (!profileUser) {
+    return (
+      <div style={{ 
+        textAlign: 'center', 
+        padding: 40,
+        color: isDark ? '#737373' : '#8c8c8c',
+      }}>
+        <Title level={4} style={{ color: isDark ? '#fff' : '#000' }}>
+          User not found
+        </Title>
+        <Link to="/">
+          <Button type="primary">Go Home</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const avatarUrl = profileUser.avatar || profileUser.avatarUrl || '';
+
   return (
-    <div className="min-h-screen">
+    <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border">
-        <div className="flex items-center justify-between p-4">
-          <div className="w-10" />
-          <h1 className="text-base font-semibold">Profile</h1>
-          <button className="p-2 rounded-full hover:bg-muted transition-colors">
-            <MoreHorizontal size={20} />
-          </button>
-        </div>
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <div style={{ width: 40 }} />
+        <Title level={5} style={{ margin: 0, color: isDark ? '#fff' : '#000' }}>
+          {profileUser.displayName}
+        </Title>
+        {isOwnProfile && (
+          <Button 
+            type="text" 
+            icon={<SettingOutlined />}
+            onClick={() => {}}
+            style={{ color: isDark ? '#fff' : '#000' }}
+          />
+        )}
       </header>
 
       {/* Profile Info */}
-      <div className="p-4">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h2 className="text-2xl font-bold">{profileData?.displayName}</h2>
-            <p className="text-muted-foreground">@{profileData?.username}</p>
+      <div style={{ padding: 16 }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-start',
+          marginBottom: 16,
+        }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Title level={4} style={{ 
+                margin: 0, 
+                color: isDark ? '#fff' : '#000',
+              }}>
+                {profileUser.displayName}
+              </Title>
+              {profileUser.isVerified && (
+                <CheckCircleFilled style={{ color: '#1890ff', fontSize: 18 }} />
+              )}
+            </div>
+            <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+              @{profileUser.username}
+            </Text>
           </div>
-          <Avatar className="w-20 h-20">
-            <AvatarImage src={profileData?.avatar} />
-            <AvatarFallback className="text-2xl bg-muted text-muted-foreground">
-              {profileData?.displayName?.charAt(0).toUpperCase()}
-            </AvatarFallback>
+          <Avatar 
+            size={80} 
+            src={avatarUrl}
+            style={{ backgroundColor: isDark ? '#333' : '#f0f0f0' }}
+          >
+            {profileUser.displayName?.charAt(0).toUpperCase()}
           </Avatar>
         </div>
 
         {/* Bio */}
-        {profileData?.bio && (
-          <p className="text-foreground mb-3">{profileData.bio}</p>
+        {profileUser.bio && (
+          <Paragraph style={{ 
+            color: isDark ? '#fff' : '#000',
+            marginBottom: 12,
+          }}>
+            {profileUser.bio}
+          </Paragraph>
         )}
 
         {/* Stats */}
-        <div className="flex items-center gap-4 text-sm mb-4">
-          <span className="text-muted-foreground">
-            <span className="text-foreground font-medium">{profileData?.followers}</span> followers
-          </span>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground">
-            <span className="text-foreground font-medium">{profileData?.following}</span> following
-          </span>
+        <div style={{ 
+          display: 'flex', 
+          gap: 16, 
+          marginBottom: 16,
+        }}>
+          <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+            <span style={{ 
+              fontWeight: 600, 
+              color: isDark ? '#fff' : '#000',
+              marginRight: 4,
+            }}>
+              {profileUser.followingCount || profileUser.following?.length || 0}
+            </span>
+            Following
+          </Text>
+          <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+            <span style={{ 
+              fontWeight: 600, 
+              color: isDark ? '#fff' : '#000',
+              marginRight: 4,
+            }}>
+              {profileUser.followersCount || profileUser.followers?.length || 0}
+            </span>
+            Followers
+          </Text>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 mb-4">
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: 8 }}>
           {isOwnProfile ? (
-            <>
-              <Button variant="outline" className="flex-1 rounded-lg">
-                Edit profile
-              </Button>
-              <button className="p-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                <BarChart3 size={20} />
-              </button>
-              <button className="p-2 border border-border rounded-lg hover:bg-muted transition-colors">
-                <Instagram size={20} />
-              </button>
-            </>
+            <Button 
+              block
+              icon={<EditOutlined />}
+              onClick={() => setIsEditModalOpen(true)}
+              style={{
+                borderRadius: 8,
+                borderColor: isDark ? '#404040' : '#d9d9d9',
+                color: isDark ? '#fff' : '#000',
+              }}
+            >
+              Edit profile
+            </Button>
           ) : (
             <>
-              <Button className="flex-1 rounded-lg">
-                Follow
+              <Button 
+                type={isFollowing ? 'default' : 'primary'}
+                block
+                onClick={handleFollow}
+                style={{
+                  borderRadius: 8,
+                  fontWeight: 600,
+                }}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
               </Button>
-              <Button variant="outline" className="flex-1 rounded-lg">
+              <Button 
+                block
+                style={{
+                  borderRadius: 8,
+                  borderColor: isDark ? '#404040' : '#d9d9d9',
+                  color: isDark ? '#fff' : '#000',
+                }}
+              >
                 Mention
               </Button>
             </>
           )}
         </div>
-
-        {/* Tabs */}
-        <div className="flex border-b border-border -mx-4">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'border-b-2 border-foreground text-foreground'
-                  : 'text-muted-foreground'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
       </div>
 
-      {/* Create post box for own profile */}
-      {isOwnProfile && (
-        <CreatePostBox onClick={() => setIsCreateModalOpen(true)} />
-      )}
+      {/* Tabs */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={tabItems}
+        centered
+        style={{ borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}` }}
+      />
 
-      {/* Posts */}
-      <div className="pb-20">
-        {activeTab === 'threads' && (
-          userPosts.length > 0 ? (
-            userPosts.map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))
-          ) : (
-            <div className="py-12 text-center text-muted-foreground">
-              {isOwnProfile ? "You haven't posted any threads yet" : "No threads yet"}
-            </div>
-          )
-        )}
-        {activeTab === 'replies' && (
-          <div className="py-12 text-center text-muted-foreground">
-            No replies yet
-          </div>
-        )}
-        {activeTab === 'reposts' && (
-          <div className="py-12 text-center text-muted-foreground">
-            No reposts yet
+      {/* Create Post Box (only on own profile) */}
+      {isOwnProfile && activeTab === 'threads' && <CreatePostBox />}
+
+      {/* Tab Content */}
+      <div style={{ paddingBottom: 80 }}>
+        {getTabContent().length > 0 ? (
+          getTabContent().map((post) => (
+            <PostCard key={post._id || post.postId} post={post} />
+          ))
+        ) : (
+          <div style={{ 
+            textAlign: 'center', 
+            padding: 40,
+            color: isDark ? '#737373' : '#8c8c8c',
+          }}>
+            <p>No {activeTab} yet</p>
           </div>
         )}
       </div>
 
-      <CreatePostModal 
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdate={(updatedUser) => setProfileUser(prev => ({ ...prev, ...updatedUser }))}
       />
     </div>
   );

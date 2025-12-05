@@ -1,24 +1,32 @@
+/**
+ * Search Page
+ * 
+ * Search for posts and users.
+ */
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Search as SearchIcon, X } from 'lucide-react';
+import { Input, Avatar, Button, Typography, Empty } from 'antd';
+import { SearchOutlined, CloseCircleFilled, CheckCircleFilled } from '@ant-design/icons';
 import { usePosts } from '@/context/PostContext';
+import { useTheme } from '@/context/ThemeContext';
 import PostCard from '@/components/post/PostCard';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
+
+const { Text } = Typography;
 
 // Mock suggested users
 const suggestedUsers = [
-  { id: '1', username: 'zuck', displayName: 'Mark Zuckerberg', followers: '3.2M', avatar: '' },
-  { id: '2', username: 'instagram', displayName: 'Instagram', followers: '89M', avatar: '' },
-  { id: '3', username: 'threads', displayName: 'Threads', followers: '12M', avatar: '' },
-  { id: '4', username: 'meta', displayName: 'Meta', followers: '5.1M', avatar: '' },
+  { id: '1', username: 'zuck', displayName: 'Mark Zuckerberg', followers: '3.2M', avatar: '', isVerified: true },
+  { id: '2', username: 'instagram', displayName: 'Instagram', followers: '89M', avatar: '', isVerified: true },
+  { id: '3', username: 'threads', displayName: 'Threads', followers: '12M', avatar: '', isVerified: true },
+  { id: '4', username: 'meta', displayName: 'Meta', followers: '5.1M', avatar: '', isVerified: true },
 ];
 
 const Search = () => {
   const { searchParams } = useParams();
   const navigate = useNavigate();
   const { posts } = usePosts();
+  const { isDark } = useTheme();
   const [query, setQuery] = useState(searchParams || '');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -29,10 +37,9 @@ const Search = () => {
     }
   }, [searchParams]);
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search/${encodeURIComponent(query.trim())}`);
+  const handleSearch = (value) => {
+    if (value.trim()) {
+      navigate(`/search/${encodeURIComponent(value.trim())}`);
       setIsSearching(true);
     }
   };
@@ -45,79 +52,120 @@ const Search = () => {
 
   const filteredPosts = posts.filter(post => 
     post.content.toLowerCase().includes(query.toLowerCase()) ||
-    post.author.username.toLowerCase().includes(query.toLowerCase())
+    post.author?.username.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
-    <div className="min-h-screen">
+    <div style={{ minHeight: '100vh' }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border p-4">
-        <form onSubmit={handleSearch} className="relative">
-          <SearchIcon 
-            size={18} 
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" 
-          />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search"
-            className="pl-10 pr-10 bg-muted border-none rounded-xl"
-          />
-          {query && (
-            <button
-              type="button"
+      <header style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        backgroundColor: isDark ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.8)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${isDark ? '#262626' : '#e5e5e5'}`,
+        padding: 16,
+      }}>
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onPressEnter={(e) => handleSearch(e.target.value)}
+          placeholder="Search"
+          prefix={<SearchOutlined style={{ color: isDark ? '#737373' : '#8c8c8c' }} />}
+          suffix={query && (
+            <CloseCircleFilled 
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X size={18} />
-            </button>
+              style={{ color: isDark ? '#737373' : '#8c8c8c', cursor: 'pointer' }}
+            />
           )}
-        </form>
+          style={{
+            backgroundColor: isDark ? '#262626' : '#f5f5f5',
+            borderColor: 'transparent',
+            borderRadius: 12,
+          }}
+        />
       </header>
 
       {/* Content */}
       {isSearching && query ? (
-        <div className="pb-20">
+        <div style={{ paddingBottom: 80 }}>
           {filteredPosts.length > 0 ? (
             filteredPosts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard key={post.postId} post={post} />
             ))
           ) : (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">No results found for "{query}"</p>
-            </div>
+            <Empty
+              description={
+                <Text style={{ color: isDark ? '#737373' : '#8c8c8c' }}>
+                  No results found for "{query}"
+                </Text>
+              }
+              style={{ padding: 40 }}
+            />
           )}
         </div>
       ) : (
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Suggested for you</h2>
-          <div className="space-y-3">
+        <div style={{ padding: 16 }}>
+          <Text strong style={{ 
+            display: 'block',
+            marginBottom: 16,
+            color: isDark ? '#fff' : '#000',
+            fontSize: 16,
+          }}>
+            Suggested for you
+          </Text>
+          <div>
             {suggestedUsers.map((user) => (
               <div 
                 key={user.id}
-                className="flex items-center justify-between p-3 rounded-xl hover:bg-threads-hover transition-colors cursor-pointer"
                 onClick={() => navigate(`/${user.username}`)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: 12,
+                  borderRadius: 12,
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                }}
+                className="hover-bg"
               >
-                <div className="flex items-center gap-3">
-                  <Avatar className="w-11 h-11">
-                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-500 text-white">
-                      {user.displayName.charAt(0)}
-                    </AvatarFallback>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Avatar 
+                    size={44}
+                    src={user.avatar}
+                    style={{ 
+                      background: 'linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045)',
+                    }}
+                  >
+                    {user.displayName.charAt(0)}
                   </Avatar>
                   <div>
-                    <div className="font-semibold flex items-center gap-1">
-                      {user.username}
-                      <svg className="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8.52 3.59a3.29 3.29 0 0 1 6.96 0 3.29 3.29 0 0 1 4.93 4.93 3.29 3.29 0 0 1 0 6.96 3.29 3.29 0 0 1-4.93 4.93 3.29 3.29 0 0 1-6.96 0 3.29 3.29 0 0 1-4.93-4.93 3.29 3.29 0 0 1 0-6.96 3.29 3.29 0 0 1 4.93-4.93Z"/>
-                        <path fill="white" d="m10.25 15.13-2.5-2.5 1.06-1.06 1.44 1.44 4.44-4.44 1.06 1.06-5.5 5.5Z"/>
-                      </svg>
+                    <div style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: 4,
+                    }}>
+                      <Text strong style={{ color: isDark ? '#fff' : '#000' }}>
+                        {user.username}
+                      </Text>
+                      {user.isVerified && (
+                        <CheckCircleFilled style={{ color: '#1890ff', fontSize: 14 }} />
+                      )}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <Text style={{ color: isDark ? '#737373' : '#8c8c8c', fontSize: 13 }}>
                       {user.followers} followers
-                    </div>
+                    </Text>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" className="rounded-full">
+                <Button
+                  style={{
+                    borderRadius: 8,
+                    borderColor: isDark ? '#404040' : '#d9d9d9',
+                    color: isDark ? '#fff' : '#000',
+                  }}
+                >
                   Follow
                 </Button>
               </div>

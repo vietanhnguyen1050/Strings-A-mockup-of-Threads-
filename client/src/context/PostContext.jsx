@@ -1,143 +1,162 @@
-import { createContext, useContext, useState } from 'react';
+/**
+ * Post Context
+ * 
+ * Manages post state throughout the application.
+ * Connects to postService for API calls.
+ */
+
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import postService from '@/services/postService';
 
 const PostContext = createContext(undefined);
 
-// Mock data
-const initialPosts = [
-  {
-    id: '1',
-    author: {
-      id: '2',
-      username: '_vitamint_sea',
-      displayName: 'Vitamin Sea',
-      avatar: '',
-      isVerified: true,
-    },
-    content: 'Là một sinh viên DAV (bàn chả liên quan gì đến mấy bản các anh chị làm, tôi đủ vì tôi thấy vui):\n- TAO KHÔNG CÓ GIỎI NÓI CHUYỆN ẤY???\n- t thật sự không quan tâm quá nhiều đến chính trị\n- t không phải cocc, không có định hướng làm nhà nước',
-    timestamp: '2d',
-    likes: 142,
-    comments: 22,
-    reposts: 21,
-    shares: 10,
-    isLiked: false,
-    isReposted: false,
-  },
-  {
-    id: '2',
-    author: {
-      id: '3',
-      username: 'huytarn',
-      displayName: 'Huy Tarn',
-      avatar: '',
-    },
-    content: 'thi thuyết trình tacn chưa chat',
-    timestamp: '2d',
-    likes: 0,
-    comments: 1,
-    reposts: 0,
-    shares: 0,
-    isLiked: false,
-    isReposted: false,
-  },
-  {
-    id: '3',
-    author: {
-      id: '4',
-      username: 'hopefor_yours',
-      displayName: 'Hope For Yours',
-      avatar: '',
-      isVerified: true,
-    },
-    content: '[diary của người yêu roommate] 22/11/2025\n\nMình có chút không hài lòng với hành động cổ vừa làm, nên quyết định im lặng một chút để hạ hoả, tranh thủ dọn dẹp lại đồ đạc để đầu óc mình mẩn hơn.',
-    timestamp: '12h',
-    likes: 1200,
-    comments: 21,
-    reposts: 41,
-    shares: 24,
-    isLiked: false,
-    isReposted: false,
-  },
-  {
-    id: '4',
-    author: {
-      id: '5',
-      username: 'purrienotfound',
-      displayName: 'Purrie',
-      avatar: '',
-    },
-    content: 'là 1 sinh viên dav:\n- t không phải cocc, cũng k có ý định làm nhà nước\n- t không tham gia bất kì clb nào, vẫn có bạn bè và happi happi\n- t không đi dạy tiếng anh\n- t không thích đồ ăn chùa láng cho lắm',
-    timestamp: '2d',
-    likes: 89,
-    comments: 15,
-    reposts: 8,
-    shares: 3,
-    isLiked: false,
-    isReposted: false,
-  },
-];
-
 export const PostProvider = ({ children }) => {
-  const [posts, setPosts] = useState(initialPosts);
-  const [likedPosts, setLikedPosts] = useState([]);
+  const [posts, setPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addPost = (content, authorId, authorUsername, authorDisplayName) => {
-    const newPost = {
-      id: Date.now().toString(),
-      author: {
-        id: authorId,
-        username: authorUsername,
-        displayName: authorDisplayName,
-        avatar: '',
-      },
-      content,
-      timestamp: 'now',
-      likes: 0,
-      comments: 0,
-      reposts: 0,
-      shares: 0,
-      isLiked: false,
-      isReposted: false,
-    };
-    setPosts(prev => [newPost, ...prev]);
+  // Fetch posts on mount
+  const fetchPosts = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await postService.getAllPosts();
+      if (result.success) {
+        setPosts(result.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch posts:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const addPost = async (content, media = []) => {
+    const result = await postService.createPost({ content, media });
+    if (result.success) {
+      await fetchPosts(); // Refetch to get updated data
+      return { success: true, data: result.data };
+    }
+    return { success: false, error: result.error };
   };
 
-  const likePost = (postId) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        const updatedPost = { ...post, isLiked: true, likes: post.likes + 1 };
-        setLikedPosts(liked => {
-          if (!liked.find(p => p.id === postId)) {
-            return [updatedPost, ...liked];
-          }
-          return liked;
-        });
-        return updatedPost;
-      }
-      return post;
-    }));
+  const addComment = async (postId, content, media = []) => {
+    const result = await postService.createComment(postId, { content, media });
+    if (result.success) {
+      await fetchPosts();
+      return { success: true, data: result.data };
+    }
+    return { success: false, error: result.error };
   };
 
-  const unlikePost = (postId) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        return { ...post, isLiked: false, likes: post.likes - 1 };
-      }
-      return post;
-    }));
-    setLikedPosts(prev => prev.filter(post => post.id !== postId));
+  const likePost = async (postId) => {
+    const result = await postService.reactToPost(postId);
+    if (result.success) {
+      const userId = localStorage.getItem('userId');
+      setPosts(prev => prev.map(post => {
+        const id = post._id || post.postId;
+        if (id === postId) {
+          const reacts = post.reacts || post.reactions || [];
+          const hasLiked = reacts.includes(userId);
+          return {
+            ...post,
+            reacts: hasLiked 
+              ? reacts.filter(id => id !== userId)
+              : [...reacts, userId],
+          };
+        }
+        return post;
+      }));
+      return { success: true, data: result.data };
+    }
+    return { success: false };
   };
 
-  const repostPost = (postId) => {
-    setPosts(prev => prev.map(post => {
-      if (post.id === postId) {
-        return { ...post, isReposted: !post.isReposted, reposts: post.isReposted ? post.reposts - 1 : post.reposts + 1 };
-      }
-      return post;
-    }));
+  const repostPost = async (postId) => {
+    const result = await postService.repostPost(postId);
+    if (result.success) {
+      const userId = localStorage.getItem('userId');
+      setPosts(prev => prev.map(post => {
+        const id = post._id || post.postId;
+        if (id === postId) {
+          const reposts = post.repostedBy || post.reposts || [];
+          const hasReposted = reposts.includes(userId);
+          return {
+            ...post,
+            repostedBy: hasReposted 
+              ? reposts.filter(id => id !== userId)
+              : [...reposts, userId],
+          };
+        }
+        return post;
+      }));
+      return { success: true, data: result.data };
+    }
+    return { success: false };
+  };
+
+  const editPost = async (postId, content) => {
+    const result = await postService.editPost(postId, content);
+    if (result.success) {
+      setPosts(prev => prev.map(post => {
+        const id = post._id || post.postId;
+        if (id === postId) {
+          return { ...post, content };
+        }
+        return post;
+      }));
+      return { success: true };
+    }
+    return { success: false, error: result.error };
+  };
+
+  const deletePost = async (postId) => {
+    const result = await postService.deletePost(postId);
+    if (result.success) {
+      setPosts(prev => prev.filter(post => {
+        const id = post._id || post.postId;
+        return id !== postId;
+      }));
+      return { success: true };
+    }
+    return { success: false, error: result.error };
+  };
+
+  const getPostById = async (postId) => {
+    return await postService.getPostById(postId);
+  };
+
+  const getLikedPosts = (userId) => {
+    return posts.filter(post => {
+      const reacts = post.reacts || post.reactions || [];
+      return reacts.includes(userId);
+    });
+  };
+
+  const getRepostedPosts = (userId) => {
+    return posts.filter(post => {
+      const reposts = post.repostedBy || post.reposts || [];
+      return reposts.includes(userId);
+    });
   };
 
   return (
-    <PostContext.Provider value={{ posts, likedPosts, addPost, likePost, unlikePost, repostPost }}>
+    <PostContext.Provider value={{ 
+      posts, 
+      isLoading,
+      fetchPosts,
+      addPost, 
+      addComment,
+      likePost, 
+      repostPost,
+      editPost,
+      deletePost,
+      getPostById,
+      getLikedPosts,
+      getRepostedPosts,
+    }}>
       {children}
     </PostContext.Provider>
   );
