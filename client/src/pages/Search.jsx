@@ -29,6 +29,7 @@ const Search = () => {
   const { isDark } = useTheme();
   const [query, setQuery] = useState(searchParams || '');
   const [isSearching, setIsSearching] = useState(false);
+  console.log(usePosts());
 
   useEffect(() => {
     if (searchParams) {

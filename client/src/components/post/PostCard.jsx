@@ -40,6 +40,10 @@ const PostCard = ({ post }) => {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
 
+  // Local state for reactions and reposts
+  const [localReactions, setLocalReactions] = useState(post.reacts || post.reactions || []);
+  const [localReposts, setLocalReposts] = useState(post.repostedBy || post.reposts || []);
+
   // Get post ID (support both _id and postId)
   const postId = post._id || post.postId;
   
@@ -57,8 +61,8 @@ const PostCard = ({ post }) => {
 
   // Check user interactions
   const userId = user?._id || user?.userId;
-  const hasLiked = userId && reactions.some(id => id === userId || id?._id === userId);
-  const hasReposted = userId && reposts.some(id => id === userId || id?._id === userId);
+  const hasLiked = userId && localReactions.some(id => id === userId || id?._id === userId);
+  const hasReposted = userId && localReposts.some(id => id === userId || id?._id === userId);
   const isOwnPost = userId && (author._id === userId || author.userId === userId || authorUsername === user?.username);
 
   const handleLike = async (e) => {
@@ -67,10 +71,20 @@ const PostCard = ({ post }) => {
       message.warning('Please log in to like posts');
       return;
     }
-
     setIsLikeAnimating(true);
     setTimeout(() => setIsLikeAnimating(false), 400);
-    await likePost(postId);
+    const updated = await likePost(postId);
+    // Assume likePost returns updated reactions array
+    if (updated?.reacts || updated?.reactions) {
+      setLocalReactions(updated.reacts || updated.reactions);
+    } else {
+      // fallback: toggle locally
+      if (hasLiked) {
+        setLocalReactions(localReactions.filter(id => id !== userId && id?._id !== userId));
+      } else {
+        setLocalReactions([...localReactions, userId]);
+      }
+    }
   };
 
   const handleRepost = async (e) => {
@@ -79,7 +93,18 @@ const PostCard = ({ post }) => {
       message.warning('Please log in to repost');
       return;
     }
-    await repostPost(postId);
+    const updated = await repostPost(postId);
+    // Assume repostPost returns updated reposts array
+    if (updated?.repostedBy || updated?.reposts) {
+      setLocalReposts(updated.repostedBy || updated.reposts);
+    } else {
+      // fallback: toggle locally
+      if (hasReposted) {
+        setLocalReposts(localReposts.filter(id => id !== userId && id?._id !== userId));
+      } else {
+        setLocalReposts([...localReposts, userId]);
+      }
+    }
   };
 
   const handleComment = (e) => {
@@ -384,7 +409,7 @@ const PostCard = ({ post }) => {
                   )
                 }
               >
-                {formatCount(reactions.length)}
+                {formatCount(localReactions.length)}
               </Button>
 
               <Button
@@ -412,7 +437,7 @@ const PostCard = ({ post }) => {
                 }}
                 icon={<RetweetOutlined style={{ fontSize: 18, color: hasReposted ? '#52c41a' : undefined }} />}
               >
-                {formatCount(reposts.length)}
+                {formatCount(localReposts.length)}
               </Button>
 
               <Button

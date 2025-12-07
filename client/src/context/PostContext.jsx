@@ -55,7 +55,7 @@ export const PostProvider = ({ children }) => {
     const result = await postService.reactToPost(postId);
     if (result.success) {
       const userId = localStorage.getItem('userId');
-      setPosts(prev => prev.map(post => {
+      setPosts(prev => Array.isArray(prev) ? prev.map(post => {
         const id = post._id || post.postId;
         if (id === postId) {
           const reacts = post.reacts || post.reactions || [];
@@ -68,7 +68,7 @@ export const PostProvider = ({ children }) => {
           };
         }
         return post;
-      }));
+      }) : prev);
       return { success: true, data: result.data };
     }
     return { success: false };
@@ -78,7 +78,7 @@ export const PostProvider = ({ children }) => {
     const result = await postService.repostPost(postId);
     if (result.success) {
       const userId = localStorage.getItem('userId');
-      setPosts(prev => prev.map(post => {
+      setPosts(prev => Array.isArray(prev) ? prev.map(post => {
         const id = post._id || post.postId;
         if (id === postId) {
           const reposts = post.repostedBy || post.reposts || [];
@@ -91,7 +91,7 @@ export const PostProvider = ({ children }) => {
           };
         }
         return post;
-      }));
+      }) : prev);
       return { success: true, data: result.data };
     }
     return { success: false };
@@ -100,13 +100,13 @@ export const PostProvider = ({ children }) => {
   const editPost = async (postId, content) => {
     const result = await postService.editPost(postId, content);
     if (result.success) {
-      setPosts(prev => prev.map(post => {
+      setPosts(prev => Array.isArray(prev) ? prev.map(post => {
         const id = post._id || post.postId;
         if (id === postId) {
           return { ...post, content };
         }
         return post;
-      }));
+      }) : prev);
       return { success: true };
     }
     return { success: false, error: result.error };
@@ -115,10 +115,10 @@ export const PostProvider = ({ children }) => {
   const deletePost = async (postId) => {
     const result = await postService.deletePost(postId);
     if (result.success) {
-      setPosts(prev => prev.filter(post => {
+      setPosts(prev => Array.isArray(prev) ? prev.filter(post => {
         const id = post._id || post.postId;
         return id !== postId;
-      }));
+      }) : prev);
       return { success: true };
     }
     return { success: false, error: result.error };
@@ -129,17 +129,17 @@ export const PostProvider = ({ children }) => {
   };
 
   const getLikedPosts = (userId) => {
-    return posts.filter(post => {
+    return Array.isArray(posts) ? posts.filter(post => {
       const reacts = post.reacts || post.reactions || [];
       return reacts.includes(userId);
-    });
+    }) : [];
   };
 
   const getRepostedPosts = (userId) => {
-    return posts.filter(post => {
+    return Array.isArray(posts) ? posts.filter(post => {
       const reposts = post.repostedBy || post.reposts || [];
       return reposts.includes(userId);
-    });
+    }) : [];
   };
 
   return (

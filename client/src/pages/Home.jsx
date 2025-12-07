@@ -15,10 +15,11 @@ const { Title } = Typography;
 const Home = () => {
   const { posts, isLoading } = usePosts();
   const { isDark } = useTheme();
-
   // Ensure posts is always an array
-  const feedPosts = (Array.isArray(posts) ? posts : []).filter(post => !post.replyingTo);
-
+const feedPosts = (Array.isArray(posts?.data) ? posts.data.flat() : [])
+  .filter(post => !post.replyingTo);
+console.log('Posts from context:', feedPosts);
+// ...existing code...  console.log('Feed Posts:', feedPosts);
   const tabItems = [
     { key: 'for-you', label: 'For you' },
     { key: 'following', label: 'Following' },
@@ -75,7 +76,7 @@ const Home = () => {
           </div>
         ) : feedPosts.length > 0 ? (
           feedPosts.map((post) => (
-            <PostCard key={post.postId} post={post} />
+            <PostCard key={post._id} post={post} />
           ))
         ) : (
           <div style={{ 

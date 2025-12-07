@@ -19,3 +19,4 @@ router.post("/:postId/like", requireAuth, toggleLike);
 router.post("/:postId/repost", requireAuth, toggleRepost);
 
 export default router;
+

@@ -69,7 +69,7 @@ export const createComment = async (postId, commentData) => {
     }
     
     // Use query param for replyingTo
-    const response = await uploadFormData(`/posts?replyingTo=${postId}`, formData);
+    const response = await uploadFormData(`/posts`, formData);
     return { success: true, data: response.data };
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to create comment';
@@ -80,7 +80,7 @@ export const createComment = async (postId, commentData) => {
 // React to a post (like/unlike)
 export const reactToPost = async (postId) => {
   try {
-    const response = await api.patch(`/posts/${postId}/like`);
+    const response = await api.post(`/posts/${postId}/like`);
     return { success: true, data: response.data };
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to react to post';
@@ -113,7 +113,7 @@ export const editPost = async (postId, content) => {
 // Delete post
 export const deletePost = async (postId) => {
   try {
-    await api.delete(`/posts/${postId}`);
+    await api.delete(`/${postId}`);
     return { success: true };
   } catch (error) {
     const message = error.response?.data?.message || 'Failed to delete post';
