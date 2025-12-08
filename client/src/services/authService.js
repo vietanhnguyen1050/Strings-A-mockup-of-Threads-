@@ -1,10 +1,3 @@
-/**
- * Auth Service
- * 
- * API endpoints for authentication.
- * Connects to backend: POST /api/auth/login, POST /api/auth/signup
- */
-
 import api from '@/api/axios';
 
 // Login with email/username/phone and password

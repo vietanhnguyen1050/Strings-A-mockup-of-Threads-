@@ -41,9 +41,9 @@ export const getUserByUsername = async (username) => {
 };
 
 // Get full user profile (by username)
-export const getFullUserProfile = async (username) => {
+export const getFullUserProfile = async (userId) => {
   try {
-    const response = await api.get(`/users/username/${username}`);
+    const response = await api.get(`/users/${userId}/profile`);
     const data = response.data;
     
     return {

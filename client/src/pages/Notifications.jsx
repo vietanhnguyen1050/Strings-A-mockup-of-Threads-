@@ -20,37 +20,7 @@ import { useTheme } from '@/context/ThemeContext';
 const { Title, Text } = Typography;
 
 const mockNotifications = [
-  {
-    id: '1',
-    type: 'follow',
-    user: { username: 'hopefor_yours', displayName: 'Hope For Yours', avatar: '' },
-    timestamp: '2h',
-    read: false,
-  },
-  {
-    id: '2',
-    type: 'like',
-    user: { username: '_vitamint_sea', displayName: 'Vitamin Sea', avatar: '' },
-    content: 'liked your thread',
-    timestamp: '4h',
-    read: false,
-  },
-  {
-    id: '3',
-    type: 'comment',
-    user: { username: 'huytarn', displayName: 'Huy Tarn', avatar: '' },
-    content: 'Great post! Keep it up 🔥',
-    timestamp: '1d',
-    read: true,
-  },
-  {
-    id: '4',
-    type: 'repost',
-    user: { username: 'purrienotfound', displayName: 'Purrie', avatar: '' },
-    content: 'reposted your thread',
-    timestamp: '2d',
-    read: true,
-  },
+
 ];
 
 const Notifications = () => {

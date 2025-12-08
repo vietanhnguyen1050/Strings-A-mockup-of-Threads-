@@ -18,8 +18,7 @@ const Home = () => {
   // Ensure posts is always an array
 const feedPosts = (Array.isArray(posts?.data) ? posts.data.flat() : [])
   .filter(post => !post.replyingTo);
-console.log('Posts from context:', feedPosts);
-// ...existing code...  console.log('Feed Posts:', feedPosts);
+  // ...existing code...  console.log('Feed Posts:', feedPosts);
   const tabItems = [
     { key: 'for-you', label: 'For you' },
     { key: 'following', label: 'Following' },

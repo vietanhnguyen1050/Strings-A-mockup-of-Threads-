@@ -1,8 +1,3 @@
-/**
- * Liked Page
- * 
- * Shows all posts liked by the current user.
- */
 
 import { Link } from 'react-router-dom';
 import { Typography, Button, Empty } from 'antd';
@@ -15,7 +10,7 @@ import PostCard from '@/components/post/PostCard';
 const { Title, Text } = Typography;
 
 const Liked = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user: currentUser } = useAuth();
   const { likedPosts } = usePosts();
   const { isDark } = useTheme();
 

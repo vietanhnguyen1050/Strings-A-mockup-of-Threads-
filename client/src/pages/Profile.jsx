@@ -49,7 +49,7 @@ const Profile = () => {
   const loadProfile = async () => {
     setIsLoading(true);
     try {
-      const result = await getFullUserProfile(username);
+      const result = await getFullUserProfile(currentUserId);
       if (result.success) {
         const data = result.data;
         setProfileUser(data);

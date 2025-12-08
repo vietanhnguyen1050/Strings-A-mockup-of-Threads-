@@ -42,8 +42,8 @@ export const PostProvider = ({ children }) => {
     return { success: false, error: result.error };
   };
 
-  const addComment = async (postId, content, media = []) => {
-    const result = await postService.createComment(postId, { content, media });
+  const addComment = async (postId, replyingTo, content,) => {
+    const result = await postService.createComment(postId, { replyingTo, content });
     if (result.success) {
       await fetchPosts();
       return { success: true, data: result.data };

@@ -60,13 +60,13 @@ export const createComment = async (postId, commentData) => {
   try {
     const formData = new FormData();
     formData.append('content', commentData.content);
-    
+    formData.append('replyingTo', commentData.replyingTo);
     // Append media files if any
-    if (commentData.media && commentData.media.length > 0) {
-      commentData.media.forEach((file) => {
-        formData.append('media', file);
-      });
-    }
+    // if (commentData.media && commentData.media.length > 0) {
+    //   commentData.media.forEach((file) => {
+    //     formData.append('media', file);
+    //   });
+    // }
     
     // Use query param for replyingTo
     const response = await uploadFormData(`/posts`, formData);

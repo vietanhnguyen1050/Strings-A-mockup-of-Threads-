@@ -65,9 +65,9 @@ const PostDetailModal = ({ open, onClose, postId }) => {
       message.warning('Please log in to comment');
       return;
     }
-
+    const replyingTo = postId; // Assuming replyingTo is the postId for now
     setSubmitting(true);
-    const result = await addComment(postId, commentContent.trim());
+    const result = await addComment(postId, replyingTo, commentContent.trim());
     if (result.success) {
       setCommentContent('');
       loadPost(); // Reload to get updated comments
